@@ -1,10 +1,10 @@
 # [START OF FILE]
-os.system("git lfs pull")
+
 
 import streamlit as st
 import numpy as np
 import os, json, uuid, traceback
-
+os.system("git lfs pull")
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.models import load_model
