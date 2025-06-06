@@ -1,3 +1,10 @@
+# If you see errors installing requirements, check the terminal output for details.
+# Common issues:
+# - Incompatible TensorFlow and Python versions.
+# - Missing system dependencies for TensorFlow.
+# - If using Streamlit Cloud, use tensorflow-cpu (as you have).
+# - Remove 'keras' if using tensorflow>=2.11 (Keras is included).
+
 streamlit
 tensorflow-cpu==2.12.0
 Pillow
