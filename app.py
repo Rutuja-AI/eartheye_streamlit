@@ -61,7 +61,8 @@ def get_feature_info(label):
     return {'description': d[0], 'features': d[1]}
 
 # --- Load Keras Model ---
-model = load_model("models/earth_classifier_savedmodel")  # folder path
+model = load_model("models/earth_classifier")
+  # folder path
 
 st.write("Upload a satellite image to classify its land cover type.")
 
