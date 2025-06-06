@@ -3,10 +3,9 @@ import streamlit as st
 import numpy as np
 import os, json, uuid, traceback
 
-# import tflite_runtime.interpreter as tflite
-
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from tensorflow.keras.models import load_model
 
 st.set_page_config(page_title="EarthEye Classifier", layout="centered")
 
@@ -27,20 +26,6 @@ def preprocess_image_file(file):
     except Exception as e:
         st.error(f"Error preprocessing: {e}")
         return None
-
-# --- TFLite Model Loader ---
-def load_tflite_model(path):
-    interpreter = tflite.Interpreter(model_path=path)
-    interpreter.allocate_tensors()
-    return interpreter
-
-def predict_with_tflite(interpreter, input_data):
-    input_index = interpreter.get_input_details()[0]['index']
-    output_index = interpreter.get_output_details()[0]['index']
-    interpreter.set_tensor(input_index, input_data)
-    interpreter.invoke()
-    output = interpreter.get_tensor(output_index)
-    return output
 
 # --- Load Class Names ---
 CLASS_NAMES = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway',
@@ -74,13 +59,13 @@ def get_feature_info(label):
     d = descs.get(l, (f"Predicted feature: {label}", [label]))
     return {'description': d[0], 'features': d[1]}
 
-# --- Load TFLite Model ---
-TFLITE_MODEL_PATH = os.path.join("models", "earth_classifier.tflite")
-interpreter = None
-if os.path.exists(TFLITE_MODEL_PATH):
-    interpreter = load_tflite_model(TFLITE_MODEL_PATH)
+# --- Load Keras Model ---
+KERAS_MODEL_PATH = os.path.join("models", "earth_classifier.keras")
+model = None
+if os.path.exists(KERAS_MODEL_PATH):
+    model = load_model(KERAS_MODEL_PATH)
 else:
-    st.error("TFLite model not found at models/earth_classifier.tflite")
+    st.error("Keras model not found at models/earth_classifier.keras")
 
 st.write("Upload a satellite image to classify its land cover type.")
 
@@ -94,11 +79,11 @@ if uploaded_file is not None:
         st.write("Processing...")
         img = preprocess_image_file(uploaded_file)
         if img is not None:
-            if interpreter is None:
+            if model is None:
                 st.error("Model not loaded. Please check server configuration.")
             else:
                 try:
-                    preds = predict_with_tflite(interpreter, img.astype(np.float32))
+                    preds = model.predict(img)
                     if preds is None or len(preds) == 0:
                         st.error("Invalid prediction output.")
                     else:
