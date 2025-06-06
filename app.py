@@ -2,10 +2,11 @@
 import streamlit as st
 import numpy as np
 import os, json, uuid, traceback
+
+import tflite_runtime.interpreter as tflite
+
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-import tensorflow as tf
-import keras
 
 st.set_page_config(page_title="EarthEye Classifier", layout="centered")
 
@@ -26,6 +27,20 @@ def preprocess_image_file(file):
     except Exception as e:
         st.error(f"Error preprocessing: {e}")
         return None
+
+# --- TFLite Model Loader ---
+def load_tflite_model(path):
+    interpreter = tflite.Interpreter(model_path=path)
+    interpreter.allocate_tensors()
+    return interpreter
+
+def predict_with_tflite(interpreter, input_data):
+    input_index = interpreter.get_input_details()[0]['index']
+    output_index = interpreter.get_output_details()[0]['index']
+    interpreter.set_tensor(input_index, input_data)
+    interpreter.invoke()
+    output = interpreter.get_tensor(output_index)
+    return output
 
 # --- Load Class Names ---
 CLASS_NAMES = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway',
@@ -59,48 +74,14 @@ def get_feature_info(label):
     d = descs.get(l, (f"Predicted feature: {label}", [label]))
     return {'description': d[0], 'features': d[1]}
 
-def create_model():
-    savedmodel_path = os.path.join('models', 'earth_classifier')
-    if os.path.exists(savedmodel_path):
-        try:
-            loaded = tf.saved_model.load(savedmodel_path)
-            if 'serving_default' in loaded.signatures:
-                serving_fn = loaded.signatures['serving_default']
-                input_signature = serving_fn.structured_input_signature[1]
-                input_key = list(input_signature.keys())[0]
-                def predict_fn(x):
-                    input_tensor = tf.convert_to_tensor(x, dtype=tf.float32)
-                    result = serving_fn(**{input_key: input_tensor})
-                    output_key = list(result.keys())[0]
-                    return result[output_key].numpy()
-                return predict_fn
-        except Exception as e:
-            st.warning(f"Failed to load SavedModel: {e}")
-    keras_path = os.path.join('models', 'earth_classifier.keras')
-    if os.path.exists(keras_path):
-        try:
-            model = keras.models.load_model(keras_path, compile=False)
-            def predict_fn(x):
-                input_tensor = tf.convert_to_tensor(x, dtype=tf.float32)
-                result = model(input_tensor, training=False)
-                if isinstance(result, dict):
-                    output_key = list(result.keys())[0]
-                    return result[output_key].numpy()
-                else:
-                    return result.numpy()
-            return predict_fn
-        except Exception as e:
-            st.warning(f"Failed to load .keras model: {e}")
-    st.error("❌ Failed to load any model!")
-    return None
+# --- Load TFLite Model ---
+TFLITE_MODEL_PATH = os.path.join("models", "earth_classifier.tflite")
+interpreter = None
+if os.path.exists(TFLITE_MODEL_PATH):
+    interpreter = load_tflite_model(TFLITE_MODEL_PATH)
+else:
+    st.error("TFLite model not found at models/earth_classifier.tflite")
 
-@st.cache_resource(show_spinner=True)
-def load_model():
-    return create_model()
-
-model = load_model()
-
-st.title("🌍 EarthEye Land Cover Classifier")
 st.write("Upload a satellite image to classify its land cover type.")
 
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "gif"])
@@ -113,11 +94,11 @@ if uploaded_file is not None:
         st.write("Processing...")
         img = preprocess_image_file(uploaded_file)
         if img is not None:
-            if model is None:
+            if interpreter is None:
                 st.error("Model not loaded. Please check server configuration.")
             else:
                 try:
-                    preds = model(img)
+                    preds = predict_with_tflite(interpreter, img.astype(np.float32))
                     if preds is None or len(preds) == 0:
                         st.error("Invalid prediction output.")
                     else:
