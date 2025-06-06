@@ -4,7 +4,6 @@
 import streamlit as st
 import numpy as np
 import os, json, uuid, traceback
-os.system("git lfs pull")
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.models import load_model
@@ -62,12 +61,12 @@ def get_feature_info(label):
     return {'description': d[0], 'features': d[1]}
 
 # --- Load Keras Model ---
-KERAS_MODEL_PATH = os.path.join("models", "earth_classifier.keras")
+KERAS_MODEL_PATH = os.path.join("models", "earth_classifier")  # No .keras
 model = None
 if os.path.exists(KERAS_MODEL_PATH):
     model = load_model(KERAS_MODEL_PATH)
 else:
-    st.error("Keras model not found at models/earth_classifier.keras")
+    st.error("Keras model not found at models/earth_classifier")
 
 st.write("Upload a satellite image to classify its land cover type.")
 
