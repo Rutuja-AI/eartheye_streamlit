@@ -7,3 +7,4 @@ requests==2.31.0
 matplotlib==3.6.3
 opencv-python==4.7.0.72
 scikit-learn==1.2.2
+git-lfs
