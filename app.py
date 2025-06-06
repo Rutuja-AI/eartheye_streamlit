@@ -61,12 +61,7 @@ def get_feature_info(label):
     return {'description': d[0], 'features': d[1]}
 
 # --- Load Keras Model ---
-KERAS_MODEL_PATH = os.path.join("models", "earth_classifier")  # No .keras
-model = None
-if os.path.exists(KERAS_MODEL_PATH):
-    model = load_model(KERAS_MODEL_PATH)
-else:
-    st.error("Keras model not found at models/earth_classifier")
+model = load_model("models/earth_classifier_savedmodel")  # folder path
 
 st.write("Upload a satellite image to classify its land cover type.")
 
