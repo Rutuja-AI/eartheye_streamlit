@@ -3,7 +3,7 @@ import streamlit as st
 import numpy as np
 import os, json, uuid, traceback
 
-import tflite_runtime.interpreter as tflite
+# import tflite_runtime.interpreter as tflite
 
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
